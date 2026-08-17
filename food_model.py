@@ -14,17 +14,49 @@ print("=" * 60)
 print("Loading NutriFit AI Model & Classes...")
 print("=" * 60)
 
+# Load model at startup
 model = None
-if os.path.exists(MODEL_PATH):
-    try:
+try:
+    if os.path.exists(MODEL_PATH):
         model = tf.keras.models.load_model(MODEL_PATH, compile=False)
-        print("Model loaded successfully from:", MODEL_PATH)
-        print("Model input shape:", model.input_shape)
-        print("Model output shape:", model.output_shape)
-    except Exception as e:
-        print("Error loading model:", e)
-else:
-    print("WARNING: Model file not found at", MODEL_PATH)
+        print(f"Model loaded successfully from {MODEL_PATH}")
+    else:
+        raise ValueError("Model file missing")
+except Exception as e:
+    print(f"Failed to load model on startup ({e}). Generating from weights...")
+    try:
+        from tensorflow.keras.applications import MobileNetV2
+        from tensorflow.keras.layers import Dense, GlobalAveragePooling2D, Dropout, BatchNormalization
+        from tensorflow.keras.models import Model
+        import model_weights
+
+        base_model = MobileNetV2(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+        base_model.trainable = False
+
+        x = base_model.output
+        x = GlobalAveragePooling2D()(x)
+        x = BatchNormalization()(x)
+        x = Dropout(0.5)(x)
+        d1 = Dense(256, activation='relu')
+        x = d1(x)
+        x = Dropout(0.5)(x)
+        d2 = Dense(101, activation='softmax')
+        predictions = d2(x)
+
+        model = Model(inputs=base_model.input, outputs=predictions)
+        
+        # Set weights
+        d1.set_weights([model_weights.dense1_k, model_weights.dense1_b])
+        d2.set_weights([model_weights.dense2_k, model_weights.dense2_b])
+        
+        # We don't even need to save it to disk, just keep it in memory
+        print("Model successfully generated from weights in RAM.")
+    except Exception as gen_e:
+        print("Failed to generate model from weights:", gen_e)
+
+if model is not None:
+    print("Model input shape:", model.input_shape)
+    print("Model output shape:", model.output_shape)
 
 FOOD_CLASSES = []
 if os.path.exists(CLASSES_PATH):
