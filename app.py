@@ -58,16 +58,6 @@ def predict():
 
 
 if __name__ == "__main__":
-    import os
-    import urllib.request
-    model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "food_classifier_food101.keras")
-    if not os.path.exists(model_path):
-        print("Model missing! Downloading from localtunnel...")
-        req = urllib.request.Request("https://nutrifit-ai.loca.lt/food_classifier_food101.keras", headers={'Bypass-Tunnel-Reminder': 'true'})
-        with urllib.request.urlopen(req) as response, open(model_path, 'wb') as out_file:
-            out_file.write(response.read())
-        print("Model downloaded successfully!")
-
     print("=" * 60)
     print("NutriFit AI Backend Server Starting...")
     print("Server URL: http://0.0.0.0:5000")
@@ -76,6 +66,7 @@ if __name__ == "__main__":
     print("Prediction API: POST /predict")
     print("=" * 60)
 
+    import os
     port = int(os.environ.get("PORT", 5000))
     app.run(
         host="0.0.0.0",
